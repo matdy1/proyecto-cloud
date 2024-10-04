@@ -5,8 +5,8 @@ import getpass
 username = input("Por favor, introduce tu nombre de usuario: ")
 password = getpass.getpass("Por favor, introduce tu contraseña: ")
 
-# URL del servidor Flask
-url = "http://10.20.12.106:5810/login"
+# URL del servidor FastAPI
+url = "http://127.0.0.1:8000/login"
 
 # Datos de login
 data = {
@@ -14,7 +14,7 @@ data = {
     "password": password
 }
 
-# Realizar la solicitud POST al servidor Flask
+# Realizar la solicitud POST al servidor FastAPI
 try:
     response = requests.post(url, json=data)
     
