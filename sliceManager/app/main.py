@@ -28,7 +28,7 @@ class LoginData(BaseModel):
 def check_credentials(username, password):
     connection = get_db_connection()
     cursor = connection.cursor()
-    cursor.execute("SELECT * FROM usuarios WHERE nombre=%s AND contraseña=%s", (username, password))
+    cursor.execute("SELECT * FROM Usuarios WHERE nombre=%s AND contraseña=%s", (username, password))
     user = cursor.fetchone()
     connection.close()
     return user
