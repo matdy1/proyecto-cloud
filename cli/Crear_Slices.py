@@ -14,7 +14,7 @@ def crear_topologia():
         
         if opcion in ["1", "2", "3"]:
             topologias = {
-                "1": "Lineal",
+                "1": "Lineal2",
                 "2": "Anillo",
                 "3": "Parcial",
                 #"4": "Arbol"  # Nota: sin tilde para coincidir con el nombre del archivo.

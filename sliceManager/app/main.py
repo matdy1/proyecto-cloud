@@ -1,49 +1,11 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-import pymysql
-import os
-from dotenv import load_dotenv
-
-# Cargar las variables de entorno
-load_dotenv()
+from fastapi import FastAPI
+from routes import login, topology  # Importar los routers que has creado
 
 app = FastAPI()
 
-# Definir la conexión a la base de datos MySQL
-def get_db_connection():
-    connection = pymysql.connect(
-        host=os.getenv('DB_HOST'),
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'),
-        database=os.getenv('DB_NAME')
-    )
-    return connection
-
-# Modelo para los datos del login
-class LoginData(BaseModel):
-    username: str
-    password: str
-
-# Función para verificar credenciales
-def check_credentials(username, password):
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute("SELECT * FROM Usuarios WHERE nombre=%s AND contraseña=%s", (username, password))
-    user = cursor.fetchone()
-    connection.close()
-    return user
-
-# Ruta para el login
-@app.post('/login')
-def login(data: LoginData):
-    username = data.username
-    password = data.password
-
-    if check_credentials(username, password):
-        
-        return {"status": "success", "message": "Bienvenido al sistema"}
-    else:
-        raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+# Registrar los routers
+app.include_router(login.router, prefix="/login")
+app.include_router(topology.router, prefix="/topology")
 
 if __name__ == '__main__':
     import uvicorn
