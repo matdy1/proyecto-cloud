@@ -7,7 +7,7 @@ username = input("Por favor, introduce tu nombre de usuario: ")
 password = getpass.getpass("Por favor, introduce tu contraseña: ")
 
 # URL del servidor FastAPI
-url = "http://10.20.12.106:5810/login"
+url = "http://10.20.12.187:5810/login"
 
 # Datos de login
 data = {
