@@ -36,17 +36,21 @@ class LoginData(BaseModel):
 def check_credentials(username, password):
     connection = get_db_connection()
     cursor = connection.cursor()
-    cursor.execute("SELECT id, nombre FROM Usuarios WHERE nombre=%s AND contraseña=%s", (username, password))
+    cursor.execute(
+        "SELECT id, nombre, rol FROM Usuarios WHERE nombre=%s AND contraseña=%s", 
+        (username, password)
+    )
     user = cursor.fetchone()
     connection.close()
     return user
 
 # Función para generar un token JWT
-def create_jwt_token(user_id, username):
+def create_jwt_token(user_id, username, role):
     expiration = datetime.utcnow() + timedelta(minutes=JWT_EXPIRATION_MINUTES)
     payload = {
         "sub": user_id,
         "username": username,
+        "role": role,
         "exp": expiration
     }
     token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
@@ -60,33 +64,13 @@ def login(data: LoginData):
 
     user = check_credentials(username, password)
     if user:
-        user_id, user_name = user
-        token = create_jwt_token(user_id, user_name)
+        user_id, user_name, user_role = user
+        token = create_jwt_token(user_id, user_name, user_role)
         return {
             "status": "success",
             "message": "Bienvenido al sistema",
-            "token": token
+            "token": token,
+            "role": user_role  # Se incluye el rol en la respuesta
         }
     else:
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
-
-
-"""
-# Ruta protegida para probar el uso del token
-@router.get('/protected')
-def protected_route(request: Request):
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=403, detail="Token no proporcionado o inválido")
-
-    token = auth_header.split(" ")[1]
-    try:
-        decoded_token = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        return {"message": "Acceso autorizado", "user": decoded_token}
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="El token ha expirado")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=403, detail="Token inválido")
-        
-"""
-

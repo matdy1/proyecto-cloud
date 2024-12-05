@@ -2,18 +2,18 @@ import subprocess
 
 def mostrar_opciones_topologia():
     print("\nOpciones de Topología:")
-    print("1. Lineal")
+    print("1. linealOP")
     print("2. Anillo")
     print("3. Parcial")
 
-def crear_topologia():
+def run():
     while True:
         mostrar_opciones_topologia()
         opcion = input("\nSelecciona una topología: ")
         
         if opcion in ["1", "2", "3"]:
             topologias = {
-                "1": "Lineal",
+                "1": "linealOP",
                 "2": "Anillo",
                 "3": "Parcial"
             }
@@ -30,5 +30,5 @@ def crear_topologia():
 
 if __name__ == "__main__":
     print("Bienvenido a la creación de topologías para Slices")
-    crear_topologia()
+    run()
     input("Presiona Enter para volver al menú principal...")
