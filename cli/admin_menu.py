@@ -16,8 +16,8 @@ def listar_slices():
 # Función para crear slices
 def crear_slices():
     print("Has seleccionado: Crear Slices")
-    import Crear_Slices
-    Crear_Slices.run()
+    import Driver
+    Driver.run()
     # Si prefieres usar subprocess:
     # subprocess.run(["python", "Crear_Slices.py"])
 
