@@ -6,7 +6,7 @@ def mostrar_opciones_topologia():
     print("2. Anillo")
 
 def obtener_parametros_topologia(topology_type):
-    nombre = input(f"Ingrese el nombre de la topología ({topology_type}): ").strip()
+    nombre = input(f"Ingrese el nombre del proyecto ({topology_type}): ").strip()
     while True:
         try:
             num_nodos = int(input("Ingrese el número de nodos: ").strip())
@@ -18,24 +18,22 @@ def obtener_parametros_topologia(topology_type):
             print("Por favor, ingrese un número válido.")
     return nombre, num_nodos
 
-def obtener_usuarios_disponibles():
-    url = "http://10.20.12.187:5810/topology/create"
-    data = {"num_nodes": 2, "topology_name": "dummy", "topology_type": "lineal"}  # Datos temporales
+def consultar_usuarios_disponibles():
+    url = "http://10.20.12.187:5810/topology/users"
     try:
-        response = requests.post(url, json=data)
+        response = requests.get(url)
         if response.status_code == 200:
-            usuarios = response.json().get("usuarios_disponibles", [])
-            if usuarios:
+            users = response.json().get("users", [])
+            if users:
                 print("\nUsuarios disponibles:")
-                for i, usuario in enumerate(usuarios, start=1):
-                    print(f"{i}. {usuario}")
-                return usuarios
+                for idx, user in enumerate(users, start=1):
+                    print(f"{idx}. {user}")
+                return users
             else:
                 print("No hay usuarios disponibles.")
                 return []
         else:
-            print(f"Error al obtener usuarios: {response.status_code}")
-            print(response.json())
+            print(f"Error al consultar usuarios: {response.status_code}")
             return []
     except Exception as e:
         print(f"Error al conectarse al servidor: {e}")
@@ -52,7 +50,7 @@ def enviar_solicitud_topologia(topology_name, num_nodes, topology_type, selected
     try:
         response = requests.post(url, json=data)
         if response.status_code == 200:
-            print("Topología creada exitosamente.")
+            print("\nTopología creada exitosamente.")
             print("Respuesta del servidor:")
             print(response.json())
         else:
@@ -75,23 +73,22 @@ def run():
             continue
 
         nombre, num_nodos = obtener_parametros_topologia(topology_type)
-        usuarios = obtener_usuarios_disponibles()
-
+        usuarios = consultar_usuarios_disponibles()
+        
         if not usuarios:
-            print("No se puede continuar sin usuarios disponibles.")
-            continue
+            print("No hay usuarios para continuar. Intenta más tarde.")
+            return
 
-        # Seleccionar un usuario
         while True:
             try:
-                seleccion = int(input("Selecciona un usuario por número: ").strip())
-                if 1 <= seleccion <= len(usuarios):
-                    selected_user = usuarios[seleccion - 1]
+                usuario_idx = int(input("\nSeleccione un usuario por su número: ").strip())
+                if 1 <= usuario_idx <= len(usuarios):
+                    selected_user = usuarios[usuario_idx - 1]
                     break
                 else:
-                    print("Número fuera de rango. Intenta de nuevo.")
+                    print("Número de usuario fuera de rango.")
             except ValueError:
-                print("Por favor, ingresa un número válido.")
+                print("Por favor, ingrese un número válido.")
 
         enviar_solicitud_topologia(nombre, num_nodos, topology_type, selected_user)
 

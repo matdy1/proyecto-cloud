@@ -15,7 +15,7 @@ class TopologyRequest(BaseModel):
     topology_type: str  # "lineal" o "anillo"
     image_id: Optional[str] = None
     flavor_id: Optional[str] = None
-    selected_user: Optional[str] = None  # Usuario seleccionado por el admin
+    selected_user: str  # Usuario seleccionado por el admin
 
 # IDs por defecto
 DEFAULT_IMAGE_ID = "4f0d4d09-d6bc-4a65-8ce2-1a181fa3e458"
@@ -24,13 +24,41 @@ DEFAULT_FLAVOR_ID = "cdd2dc7f-b00b-483d-a104-4cea575c9b1b"
 # Ruta base donde están los scripts
 BASE_SCRIPT_PATH = os.path.join(os.path.dirname(__file__))
 
-# Conexión a la base de datos
+# Configuración de la base de datos
 DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',
     'password': 'root',
     'database': 'proyectoCloud'
 }
+
+@router.get("/users")
+async def get_users():
+    """
+    Endpoint para obtener la lista de usuarios disponibles con rol 'usuario'.
+    """
+    try:
+        # Conectar a la base de datos
+        connection = mysql.connector.connect(**DB_CONFIG)
+        cursor = connection.cursor()
+
+        # Consultar usuarios disponibles con rol "usuario"
+        cursor.execute("SELECT nombre FROM Usuarios WHERE rol='usuario'")
+        users = cursor.fetchall()
+
+        if not users:
+            raise HTTPException(status_code=404, detail="No hay usuarios disponibles con rol 'usuario'.")
+
+        # Normalizar lista de usuarios
+        user_list = [user[0].strip() for user in users]
+        return {"users": user_list}
+
+    except mysql.connector.Error as db_error:
+        raise HTTPException(status_code=500, detail=f"Error de base de datos: {db_error}")
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
 
 @router.post("/create")
 async def create_topology(request: TopologyRequest):
@@ -45,19 +73,12 @@ async def create_topology(request: TopologyRequest):
         connection = mysql.connector.connect(**DB_CONFIG)
         cursor = connection.cursor()
 
-        # Consultar usuarios disponibles con rol "usuario"
-        cursor.execute("SELECT nombre FROM Usuarios WHERE rol='usuario'")  # Rol 'usuario'
-        users = cursor.fetchall()
-
-        if not users:
-            raise HTTPException(status_code=404, detail="No hay usuarios disponibles con rol 'usuario'.")
-
-        # Obtener lista de usuarios normalizada
-        user_list = [user[0].strip() for user in users]
-        print(f"Usuarios disponibles: {user_list}")
-
         # Validar usuario seleccionado
-        if not request.selected_user or request.selected_user.strip() not in user_list:
+        cursor.execute("SELECT nombre FROM Usuarios WHERE rol='usuario'")
+        users = cursor.fetchall()
+        user_list = [user[0].strip() for user in users]
+
+        if request.selected_user.strip() not in user_list:
             raise HTTPException(
                 status_code=400,
                 detail=f"Usuario seleccionado no válido. Opciones: {user_list}"
