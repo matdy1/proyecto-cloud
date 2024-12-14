@@ -1,8 +1,9 @@
+import os
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 import subprocess
-import json
+import mysql.connector
 
 # Definir el router
 router = APIRouter()
@@ -14,10 +15,22 @@ class TopologyRequest(BaseModel):
     topology_type: str  # "lineal" o "anillo"
     image_id: Optional[str] = None
     flavor_id: Optional[str] = None
+    selected_user: Optional[str] = None  # Usuario seleccionado por el admin
 
 # IDs por defecto
 DEFAULT_IMAGE_ID = "4f0d4d09-d6bc-4a65-8ce2-1a181fa3e458"
 DEFAULT_FLAVOR_ID = "cdd2dc7f-b00b-483d-a104-4cea575c9b1b"
+
+# Ruta base donde están los scripts
+BASE_SCRIPT_PATH = os.path.join(os.path.dirname(__file__))
+
+# Conexión a la base de datos
+DB_CONFIG = {
+    'host': 'localhost',
+    'user': 'root',
+    'password': 'root',
+    'database': 'proyectoCloud'
+}
 
 @router.post("/create")
 async def create_topology(request: TopologyRequest):
@@ -26,30 +39,62 @@ async def create_topology(request: TopologyRequest):
     """
     if request.num_nodes < 2:
         raise HTTPException(status_code=400, detail="El número de nodos debe ser al menos 2.")
-    
-    # Determinar qué script ejecutar
-    if request.topology_type.lower() == "lineal":
-        script_name = "Lineal_OP.py"
-    elif request.topology_type.lower() == "anillo":
-        script_name = "Anillo_OP.py"
-    else:
-        raise HTTPException(status_code=400, detail="Tipo de topología no válida. Usa 'lineal' o 'anillo'.")
-    
-    # Parámetros de la llamada al script
-    image_id = request.image_id if request.image_id else DEFAULT_IMAGE_ID
-    flavor_id = request.flavor_id if request.flavor_id else DEFAULT_FLAVOR_ID
-    
+
     try:
+        # Conectar a la base de datos
+        connection = mysql.connector.connect(**DB_CONFIG)
+        cursor = connection.cursor()
+
+        # Consultar usuarios disponibles con rol "usuario"
+        cursor.execute("SELECT nombre FROM Usuarios WHERE rol='usuario'")  # Rol 'usuario'
+        users = cursor.fetchall()
+
+        if not users:
+            raise HTTPException(status_code=404, detail="No hay usuarios disponibles con rol 'usuario'.")
+
+        # Obtener lista de usuarios normalizada
+        user_list = [user[0].strip() for user in users]
+        print(f"Usuarios disponibles: {user_list}")
+
+        # Validar usuario seleccionado
+        if not request.selected_user or request.selected_user.strip() not in user_list:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Usuario seleccionado no válido. Opciones: {user_list}"
+            )
+
+        selected_user = request.selected_user.strip()
+        print(f"Usuario seleccionado: {selected_user}")
+
+        # Determinar qué script ejecutar
+        if request.topology_type.lower() == "lineal":
+            script_path = os.path.join(BASE_SCRIPT_PATH, "Lineal_OP.py")
+        elif request.topology_type.lower() == "anillo":
+            script_path = os.path.join(BASE_SCRIPT_PATH, "Anillo_OP.py")
+        else:
+            raise HTTPException(status_code=400, detail="Tipo de topología no válida. Usa 'lineal' o 'anillo'.")
+
+        # Parámetros de la llamada al script
+        image_id = request.image_id if request.image_id else DEFAULT_IMAGE_ID
+        flavor_id = request.flavor_id if request.flavor_id else DEFAULT_FLAVOR_ID
+
         # Ejecutar el script de topología con subprocess
         result = subprocess.run(
-            ["python3", script_name, request.topology_name, str(request.num_nodes), image_id, flavor_id],
+            ["python3", script_path, request.topology_name, str(request.num_nodes), image_id, flavor_id, selected_user],
             text=True,
             capture_output=True,
             check=True
         )
+
         # Capturar la salida del script
         output = result.stdout
         return {"message": "Topología creada exitosamente", "output": output}
+
+    except mysql.connector.Error as db_error:
+        raise HTTPException(status_code=500, detail=f"Error de base de datos: {db_error}")
     except subprocess.CalledProcessError as e:
-        # Capturar errores
         raise HTTPException(status_code=500, detail=f"Error al ejecutar el script: {e.stderr}")
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
