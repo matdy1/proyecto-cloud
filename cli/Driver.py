@@ -5,7 +5,7 @@ def mostrar_menu():
     print("1. Linux")
     print("2. OpenStack")
 
-def main():
+def run():
     while True:
         mostrar_menu()
         opcion = input("Ingrese el número de su opción (o 'q' para salir): ").strip()
@@ -23,4 +23,4 @@ def main():
             print("Opción no válida. Por favor, intente de nuevo.")
 
 if __name__ == "__main__":
-    main()
+    run()
