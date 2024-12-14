@@ -170,7 +170,7 @@ def configurar_vms(topologia):
         print(f"  Desplegada en: {vm['worker']}")
         print(f"  VLAN tag: {vm['vlan_tag']}")
 
-if _name_ == "_main_":
+if __name__ == "_main_":
     if len(sys.argv) > 1:
         configurar_vms(sys.argv[1])
     else:

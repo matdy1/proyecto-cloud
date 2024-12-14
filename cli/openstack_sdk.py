@@ -261,3 +261,65 @@ def delete_network(neutron_endpoint, project_token, network_id):
         'Content-Type': 'application/json'
     }
     return requests.delete(f"{neutron_endpoint}/networks/{network_id}", headers=headers)
+
+import requests
+
+def delete_project(keystone_endpoint, admin_token, project_id):
+    """
+    Delete a project using the Keystone API
+    
+    Args:
+        keystone_endpoint (str): The Keystone API endpoint URL
+        admin_token (str): Admin authentication token
+        project_id (str): ID of the project to delete
+    
+    Returns:
+        requests.Response: Response from the API call
+    """
+    headers = {
+        'Content-Type': 'application/json',
+        'X-Auth-Token': admin_token
+    }
+    
+    try:
+        # Construye la URL para eliminar el proyecto
+        delete_project_url = f'{keystone_endpoint}/projects/{project_id}'
+        
+        # Realiza la solicitud DELETE
+        response = requests.delete(delete_project_url, headers=headers)
+        
+        return response
+    
+    except requests.exceptions.RequestException as e:
+        print(f"Error in delete_project request: {e}")
+        raise
+
+def list_projects(keystone_endpoint, admin_token):
+    """
+    List all projects using the Keystone API
+    
+    Args:
+        keystone_endpoint (str): The Keystone API endpoint URL
+        admin_token (str): Admin authentication token
+    
+    Returns:
+        requests.Response: Response from the API call
+    """
+    headers = {
+        'Content-Type': 'application/json',
+        'X-Auth-Token': admin_token
+    }
+    
+    try:
+        # Construye la URL para listar proyectos
+        list_projects_url = f'{keystone_endpoint}/projects'
+        
+        # Realiza la solicitud GET
+        response = requests.get(list_projects_url, headers=headers)
+        
+        return response
+    
+    except requests.exceptions.RequestException as e:
+        print(f"Error in list_projects request: {e}")
+        raise
+

@@ -2,20 +2,27 @@ import subprocess
 
 def mostrar_opciones_topologia():
     print("\nOpciones de Topología:")
-    print("1. linealOP")
+    print("1. Lineal")
     print("2. Anillo")
     print("3. Parcial")
+    print("4. Perzonalizado")
+    print("5. Salir")
 
-def run():
+def crear_topologia():
     while True:
         mostrar_opciones_topologia()
-        opcion = input("\nSelecciona una topología: ")
+        opcion = input("\nSelecciona una topología o salir: ")
         
-        if opcion in ["1", "2", "3"]:
+        if opcion in ["1", "2", "3", "4","5"]:
+            if opcion == "5":
+                subprocess.run(["python3", "Driver.py"])
+                return
+            
             topologias = {
-                "1": "linealOP",
+                "1": "Lineal",
                 "2": "Anillo",
-                "3": "Parcial"
+                "3": "Parcial",
+                "4": "Perzonalizado"
             }
             script_name = f"{topologias[opcion]}.py"
             print(f"Has seleccionado la topología {topologias[opcion]}")
@@ -30,5 +37,5 @@ def run():
 
 if __name__ == "__main__":
     print("Bienvenido a la creación de topologías para Slices")
-    run()
-    input("Presiona Enter para volver al menú principal...")
+    crear_topologia()
+    input("Presiona Enter para finalizar...")
