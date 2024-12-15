@@ -1,5 +1,14 @@
 def mostrar_menu():
-    print("\nBienvenido")
+    print("""
+    
+     ██████╗██╗      ██████╗ ██╗   ██╗██████╗ 
+    ██╔════╝██║     ██╔═══██╗██║   ██║██╔══██╗
+    ██║     ██║     ██║   ██║██║   ██║██║  ██║
+    ██║     ██║     ██║   ██║██║   ██║██║  ██║
+    ╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝
+     ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝ 
+    """)
+    print("\n¡Bienvenido al Sistema de Gestión de Slices!")
     print("\nMenú Administrador:")
     print("1. Listar Slices")
     print("2. Crear Slices")
@@ -8,10 +17,11 @@ def mostrar_menu():
     print("5. Salir")
 
 # Función para listar slices
+import subprocess
+
 def listar_slices():
     print("Has seleccionado: Listar Slices")
-    # Aquí puedes implementar la lógica para listar slices
-    # Por ejemplo, obtener datos desde un servidor o base de datos.
+    subprocess.run(["python", "Listar_Slices.py"])
 
 # Función para crear slices
 def crear_slices():
@@ -20,6 +30,7 @@ def crear_slices():
     Driver.run()
     # Si prefieres usar subprocess:
     # subprocess.run(["python", "Crear_Slices.py"])
+    
 
 # Función para editar slices
 def editar_slices():
@@ -31,9 +42,8 @@ def editar_slices():
 # Función para borrar slices
 def borrar_slices():
     print("Has seleccionado: Borrar Slices")
-    # Implementa aquí la lógica para borrar slices
-    slice_id = input("Introduce el ID del Slice a borrar: ")
-    print(f"Borrando Slice con ID: {slice_id}")
+    import Delete
+    Delete.main()
 
 # Función principal del menú
 def run(token):
