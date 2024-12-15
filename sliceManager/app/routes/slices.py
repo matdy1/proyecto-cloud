@@ -55,7 +55,7 @@ async def get_slices(user: dict = Depends(decode_jwt_token)):
             raise HTTPException(status_code=404, detail=f"No hay slices disponibles para el usuario '{username}'.")
 
         # Normalizar la lista de slices
-        slice_list = [slice[1].strip() for slice in slices]
+        slice_list = [str(slice[0]).strip() for slice in slices]
         return {"user": username, "slices": slice_list}
 
     except mysql.connector.Error as db_error:
