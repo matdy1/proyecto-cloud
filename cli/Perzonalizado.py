@@ -11,156 +11,149 @@ from openstack_sf import (
 )
 from json import dumps as jdumps
 
+# Default Image and Flavor IDs
 DEFAULT_IMAGE_ID = '4f0d4d09-d6bc-4a65-8ce2-1a181fa3e458'
 DEFAULT_FLAVOR_ID = 'cdd2dc7f-b00b-483d-a104-4cea575c9b1b'
 
-def create_linear_topology(project_token, topology_name, num_nodes):
-    """
-    Create a linear topology with the specified number of nodes.
-
-    :param project_token: Token for the project
-    :param topology_name: Name of the linear topology
-    :param num_nodes: Number of nodes in the linear topology
-    :return: Dictionary with instances and ports information
-    """
-    linear_resources = {'instances': [], 'ports': []}
-
-    previous_instance_id = None
-    for i in range(num_nodes):
-        instance_name = f"{topology_name}_node_{i + 1}"
-        instance_id = create_os_instance(project_token, instance_name, DEFAULT_IMAGE_ID, DEFAULT_FLAVOR_ID)
-        print(f"Created instance: {instance_name} (ID: {instance_id})")
-
-        if previous_instance_id:
-            port_name = f"{topology_name}_port_{i}"
-            port_id = create_os_port(project_token, port_name, network_id=None, project_id=None)
-            print(f"Created port: {port_name} (ID: {port_id})")
-            linear_resources['ports'].append({'id': port_id, 'name': port_name})
-
-        linear_resources['instances'].append({'id': instance_id, 'name': instance_name})
-        previous_instance_id = instance_id
-
-    return linear_resources
-
-def create_ring_topology(project_token, topology_name, num_nodes):
-    """
-    Create a ring topology with the specified number of nodes.
-
-    :param project_token: Token for the project
-    :param topology_name: Name of the ring topology
-    :param num_nodes: Number of nodes in the ring topology
-    :return: Dictionary with instances and ports information
-    """
-    ring_resources = {'instances': [], 'ports': []}
-
-    instance_ids = []
-    for i in range(num_nodes):
-        instance_name = f"{topology_name}_node_{i + 1}"
-        instance_id = create_os_instance(project_token, instance_name, DEFAULT_IMAGE_ID, DEFAULT_FLAVOR_ID)
-        print(f"Created instance: {instance_name} (ID: {instance_id})")
-        instance_ids.append(instance_id)
-        ring_resources['instances'].append({'id': instance_id, 'name': instance_name})
-
-    # Connect the nodes in a ring
-    for i in range(num_nodes):
-        port_name = f"{topology_name}_port_{i + 1}"
-        port_id = create_os_port(project_token, port_name, network_id=None, project_id=None)
-        print(f"Created port: {port_name} (ID: {port_id})")
-        ring_resources['ports'].append({'id': port_id, 'name': port_name})
-
-    return ring_resources
-
-def create_connection_network(project_token, project_id, topology_name):
-    """
-    Create a network and subnet to connect two selected nodes from different topologies.
-
-    :param project_token: Token for the project
-    :param project_id: ID of the project
-    :param topology_name: Name of the topology
-    :return: Network and subnet IDs
-    """
-    network_name = f"connection_network_{topology_name}"
-    network_id = create_os_network(project_token, network_name)
-    print(f"Created connection network: {network_name} (ID: {network_id})")
-
-    subnet_name = f"connection_subnet_{topology_name}"
-    subnet_id = create_os_subnet(project_token, subnet_name, network_id)
-    print(f"Created connection subnet: {subnet_name} (ID: {subnet_id})")
-
-    return network_id, subnet_id
-
-def deploy_combined_topology():
-    """
-    Deploy a combined topology of linear and ring slices, with a connection between selected nodes.
-    """
-    # Get user input
-    topology_name = input("Enter the name of the topology: ").strip()
-    num_linear_nodes = int(input("Enter the number of nodes in the linear topology: "))
-    num_ring_nodes = int(input("Enter the number of nodes in the ring topology: "))
-
-    admin_project_token = get_admin_token()
-    if not admin_project_token:
-        print("ERROR: Failed to obtain admin token")
-        return None
+def create_topologies(project_token, project_id, linear_nodes, ring_nodes, image_id, flavor_id):
+    topology_resources = {
+        'linear': {
+            'networks': [],
+            'subnets': [],
+            'ports': [],
+            'instances': []
+        },
+        'ring': {
+            'networks': [],
+            'subnets': [],
+            'ports': [],
+            'instances': []
+        }
+    }
 
     try:
-        # Step 1: Create Project
-        project_name = f"{topology_name}_project"
-        project_id = create_os_project(admin_project_token, project_name)
-        print(f"Created project: {project_name} (ID: {project_id})")
+        # Create Linear Topology
+        print("Creating Linear Topology...")
+        for link_num in range(1, linear_nodes):
+            network_name = f"link_lineal_{link_num}"
+            network_id = create_os_network(project_token, network_name)
+            topology_resources['linear']['networks'].append(network_id)
 
-        # Step 2: Assign admin role to the project
-        assign_admin_role_over_os_project(admin_project_token, project_id)
-        print("Admin role assigned successfully")
+            subnet_name = f"subnet_lineal_{link_num}"
+            subnet_id = create_os_subnet(project_token, subnet_name, network_id)
+            topology_resources['linear']['subnets'].append(subnet_id)
 
-        # Step 3: Get project token
-        project_token = get_token_for_project(project_id, admin_project_token)
-        if not project_token:
-            print("ERROR: Failed to get project token")
-            return None
+            port1_id = create_os_port(project_token, f"port_1_lineal_{link_num}", network_id, project_id)
+            port2_id = create_os_port(project_token, f"port_2_lineal_{link_num}", network_id, project_id)
+            topology_resources['linear']['ports'].extend([port1_id, port2_id])
 
-        # Step 4: Create Linear Topology
-        linear_resources = create_linear_topology(project_token, f"{topology_name}_linear", num_linear_nodes)
+        for node_num in range(1, linear_nodes + 1):
+            instance_name = f"linear_node_{node_num}"
+            ports = []
 
-        # Step 5: Create Ring Topology
-        ring_resources = create_ring_topology(project_token, f"{topology_name}_ring", num_ring_nodes)
+            if node_num == 1:
+                ports = [topology_resources['linear']['ports'][0]]
+            elif node_num == linear_nodes:
+                ports = [topology_resources['linear']['ports'][-1]]
+            else:
+                ports = [
+                    topology_resources['linear']['ports'][(node_num - 2) * 2 + 1],
+                    topology_resources['linear']['ports'][(node_num - 1) * 2]
+                ]
 
-        # Step 6: Prompt user to select nodes to connect
-        print("\nNodes in Linear Topology:")
-        for i, instance in enumerate(linear_resources['instances'], 1):
-            print(f"{i}: {instance['id']}")
-        linear_node_index = int(input("Select a node from the Linear Topology to connect: ")) - 1
+            instance_info = create_os_instance(image_id, flavor_id, instance_name, ports, project_token)
+            topology_resources['linear']['instances'].append(instance_info)
 
-        print("\nNodes in Ring Topology:")
-        for i, instance in enumerate(ring_resources['instances'], 1):
-            print(f"{i}: {instance['id']}")
-        ring_node_index = int(input("Select a node from the Ring Topology to connect: ")) - 1
+        # Create Ring Topology
+        print("Creating Ring Topology...")
+        for node_num in range(1, ring_nodes + 1):
+            network_name = f"link_ring_{node_num}"
+            network_id = create_os_network(project_token, network_name)
+            topology_resources['ring']['networks'].append(network_id)
 
-        # Step 7: Create Connection Network
-        connection_network_id, connection_subnet_id = create_connection_network(project_token, project_id, topology_name)
+            subnet_name = f"subnet_ring_{node_num}"
+            subnet_id = create_os_subnet(project_token, subnet_name, network_id)
+            topology_resources['ring']['subnets'].append(subnet_id)
 
-        # Step 8: Create Ports and Connect Selected Nodes
-        linear_node_port_name = f"connection_port_linear_{topology_name}"
-        linear_node_port_id = create_os_port(project_token, linear_node_port_name, connection_network_id, project_id)
-        print(f"Created port for linear node connection: {linear_node_port_id}")
+            port1_id = create_os_port(project_token, f"port_1_ring_{node_num}", network_id, project_id)
+            port2_id = create_os_port(project_token, f"port_2_ring_{node_num}", network_id, project_id)
+            topology_resources['ring']['ports'].extend([port1_id, port2_id])
 
-        ring_node_port_name = f"connection_port_ring_{topology_name}"
-        ring_node_port_id = create_os_port(project_token, ring_node_port_name, connection_network_id, project_id)
-        print(f"Created port for ring node connection: {ring_node_port_id}")
+        for node_num in range(1, ring_nodes + 1):
+            instance_name = f"ring_node_{node_num}"
+            prev_port_index = 2 * ((node_num - 2) % ring_nodes) + 1
+            next_port_index = 2 * ((node_num - 1) % ring_nodes)
+            ports = [
+                topology_resources['ring']['ports'][prev_port_index],
+                topology_resources['ring']['ports'][next_port_index]
+            ]
 
-        # Attach the ports to the selected instances
-        linear_instance_id = linear_resources['instances'][linear_node_index]['id']
-        ring_instance_id = ring_resources['instances'][ring_node_index]['id']
+            instance_info = create_os_instance(image_id, flavor_id, instance_name, ports, project_token)
+            topology_resources['ring']['instances'].append(instance_info)
 
-        print(f"Attaching connection port to linear instance {linear_instance_id}")
-        print(f"Attaching connection port to ring instance {ring_instance_id}")
-
-        # The logic to attach ports to instances should be implemented here if needed
-
-        print("\nCombined Topology deployed successfully!")
+        return topology_resources
 
     except Exception as e:
-        print(f"Error deploying combined topology: {e}")
+        print(f"Error creating topologies: {e}")
+        return None
+
+def main():
+    print("Welcome to the Topology Creator")
+
+    # Step 1: Gather input from user
+    topology_name = input("Enter the topology name: ")
+    linear_nodes = int(input("Enter the number of nodes for the linear topology: "))
+    ring_nodes = int(input("Enter the number of nodes for the ring topology: "))
+
+    # Step 2: Get admin token and create project
+    admin_token = get_admin_token()
+    if not admin_token:
+        print("ERROR: Failed to obtain admin token")
+        sys.exit(1)
+
+    project_name = f"{topology_name}_project"
+    project_id = create_os_project(admin_token, project_name)
+    assign_admin_role_over_os_project(admin_token, project_id)
+    project_token = get_token_for_project(project_id, admin_token)
+
+    # Step 3: Create topologies
+    resources = create_topologies(project_token, project_id, linear_nodes, ring_nodes, DEFAULT_IMAGE_ID, DEFAULT_FLAVOR_ID)
+
+    if not resources:
+        print("Failed to create topologies")
+        sys.exit(1)
+
+    # Step 4: Connect nodes
+    print("\nSelect a node from the Linear Topology:")
+    for i, instance in enumerate(resources['linear']['instances'], start=1):
+        print(f"{i}. {instance['name']}")
+    linear_choice = int(input("Choose a node: ")) - 1
+
+    print("\nSelect a node from the Ring Topology:")
+    for i, instance in enumerate(resources['ring']['instances'], start=1):
+        print(f"{i}. {instance['name']}")
+    ring_choice = int(input("Choose a node: ")) - 1
+
+    linear_node = resources['linear']['instances'][linear_choice]
+    ring_node = resources['ring']['instances'][ring_choice]
+
+    print(f"Connecting {linear_node['name']} to {ring_node['name']}...")
+
+    try:
+        # Create a network and ports to connect the selected nodes
+        connection_network = create_os_network(project_token, "connection_network")
+        connection_subnet = create_os_subnet(project_token, "connection_subnet", connection_network)
+
+        linear_port = create_os_port(project_token, "linear_connection_port", connection_network, project_id)
+        ring_port = create_os_port(project_token, "ring_connection_port", connection_network, project_id)
+
+        create_os_instance(DEFAULT_IMAGE_ID, DEFAULT_FLAVOR_ID, linear_node['name'], [linear_port], project_token)
+        create_os_instance(DEFAULT_IMAGE_ID, DEFAULT_FLAVOR_ID, ring_node['name'], [ring_port], project_token)
+
+        print("Connection established successfully!")
+
+    except Exception as e:
+        print(f"Failed to connect nodes: {e}")
 
 if __name__ == "__main__":
-    deploy_combined_topology()
+    main()
