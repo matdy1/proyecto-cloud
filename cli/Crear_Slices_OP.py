@@ -5,8 +5,8 @@ def mostrar_opciones_topologia():
     print("1. Lineal")
     print("2. Anillo")
 
-def obtener_parametros_topologia(nombre_topologia):
-    nombre = input(f"Ingrese el nombre de la topología ({nombre_topologia}): ").strip()
+def obtener_parametros_topologia(topology_type):
+    nombre = input(f"Ingrese el nombre del proyecto ({topology_type}): ").strip()
     while True:
         try:
             num_nodos = int(input("Ingrese el número de nodos: ").strip())
@@ -18,17 +18,39 @@ def obtener_parametros_topologia(nombre_topologia):
             print("Por favor, ingrese un número válido.")
     return nombre, num_nodos
 
-def enviar_solicitud_topologia(topology_name, num_nodes, topology_type):
+def consultar_usuarios_disponibles():
+    url = "http://10.20.12.187:5810/topology/users"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            users = response.json().get("users", [])
+            if users:
+                print("\nUsuarios disponibles:")
+                for idx, user in enumerate(users, start=1):
+                    print(f"{idx}. {user}")
+                return users
+            else:
+                print("No hay usuarios disponibles.")
+                return []
+        else:
+            print(f"Error al consultar usuarios: {response.status_code}")
+            return []
+    except Exception as e:
+        print(f"Error al conectarse al servidor: {e}")
+        return []
+
+def enviar_solicitud_topologia(topology_name, num_nodes, topology_type, selected_user):
     url = "http://10.20.12.187:5810/topology/create"
     data = {
         "topology_name": topology_name,
         "num_nodes": num_nodes,
-        "topology_type": topology_type
+        "topology_type": topology_type,
+        "selected_user": selected_user
     }
     try:
         response = requests.post(url, json=data)
         if response.status_code == 200:
-            print("Topología creada exitosamente.")
+            print("\nTopología creada exitosamente.")
             print("Respuesta del servidor:")
             print(response.json())
         else:
@@ -42,17 +64,33 @@ def run():
         mostrar_opciones_topologia()
         opcion = input("\nSelecciona una topología: ").strip()
 
-        if opcion in ["1", "2"]:
-            topologias = {
-                "1": "lineal",
-                "2": "anillo"
-            }
-            topology_type = topologias[opcion]
-            nombre, num_nodos = obtener_parametros_topologia(topology_type)
-            enviar_solicitud_topologia(nombre, num_nodos, topology_type)
-            break
+        if opcion == "1":
+            topology_type = "lineal"
+        elif opcion == "2":
+            topology_type = "anillo"
         else:
             print("Opción no válida. Por favor, intenta de nuevo.")
+            continue
+
+        nombre, num_nodos = obtener_parametros_topologia(topology_type)
+        usuarios = consultar_usuarios_disponibles()
+        
+        if not usuarios:
+            print("No hay usuarios para continuar. Intenta más tarde.")
+            return
+
+        while True:
+            try:
+                usuario_idx = int(input("\nSeleccione un usuario por su número: ").strip())
+                if 1 <= usuario_idx <= len(usuarios):
+                    selected_user = usuarios[usuario_idx - 1]
+                    break
+                else:
+                    print("Número de usuario fuera de rango.")
+            except ValueError:
+                print("Por favor, ingrese un número válido.")
+
+        enviar_solicitud_topologia(nombre, num_nodos, topology_type, selected_user)
 
 if __name__ == "__main__":
     print("Bienvenido a la creación de topologías para Slices")

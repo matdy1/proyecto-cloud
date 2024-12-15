@@ -44,12 +44,11 @@ def check_credentials(username, password):
     connection.close()
     return user
 
-# Función para generar un token JWT
-def create_jwt_token(user_id, username, role):
+# Función para generar un token JWT (se envía el nombre del usuario en lugar del ID)
+def create_jwt_token(username, role):
     expiration = datetime.utcnow() + timedelta(minutes=JWT_EXPIRATION_MINUTES)
     payload = {
-        "sub": user_id,
-        "username": username,
+        "sub": username,  # Aquí se envía el nombre del usuario
         "role": role,
         "exp": expiration
     }
@@ -64,8 +63,8 @@ def login(data: LoginData):
 
     user = check_credentials(username, password)
     if user:
-        user_id, user_name, user_role = user
-        token = create_jwt_token(user_id, user_name, user_role)
+        _, user_name, user_role = user  # Extraer el nombre y rol del usuario
+        token = create_jwt_token(user_name, user_role)  # Crear el token con el nombre
         return {
             "status": "success",
             "message": "Bienvenido al sistema",
