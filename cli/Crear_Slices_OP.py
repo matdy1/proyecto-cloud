@@ -1,9 +1,11 @@
 import requests
+import admin_menu  # Importar el script externo
 
 def mostrar_opciones_topologia():
     print("\nOpciones de Topología:")
     print("1. Lineal")
     print("2. Anillo")
+    print("3. Regresar")
 
 def obtener_parametros_topologia(topology_type):
     nombre = input(f"Ingrese el nombre del proyecto ({topology_type}): ").strip()
@@ -59,7 +61,7 @@ def enviar_solicitud_topologia(topology_name, num_nodes, topology_type, selected
     except Exception as e:
         print(f"Error al conectarse al servidor: {e}")
 
-def run():
+def run(token):
     while True:
         mostrar_opciones_topologia()
         opcion = input("\nSelecciona una topología: ").strip()
@@ -68,6 +70,11 @@ def run():
             topology_type = "lineal"
         elif opcion == "2":
             topology_type = "anillo"
+        elif opcion == "3":
+            print("\nRegresando al menú de administración...\n")
+            import admin_menu
+            admin_menu.run(token)  # Llama a la función principal del script admin_menu.py
+            return  # Finaliza la ejecución del menú actual
         else:
             print("Opción no válida. Por favor, intenta de nuevo.")
             continue

@@ -1,0 +1,26 @@
+# Ignorar todos los entornos virtuales
+*/entorno*/lib/python*/site-packages/
+
+# Ignorar caché de Python
+__pycache__/
+*.py[cod]
+
+# Ignorar configuraciones de entorno
+.env
+*.env
+
+# Ignorar archivos de configuración de IDEs y editores
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Ignorar logs y archivos temporales
+*.log
+*.tmp
+*.bak
+
+# Ignorar otros archivos innecesarios
+*.swp
+.DS_Store
+Thumbs.db

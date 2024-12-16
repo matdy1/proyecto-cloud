@@ -5,22 +5,21 @@ def mostrar_menu():
     print("1. Linux")
     print("2. OpenStack")
 
-def run():
+def run(token):
     while True:
         mostrar_menu()
         opcion = input("Ingrese el número de su opción (o 'q' para salir): ").strip()
 
         if opcion == '1':
             print("Ejecutando script para Linux...")
-            os.system("python3 Crear_Slices.py")
+            import Crear_Slices
+            Crear_Slices.crear_topologia(token)
         elif opcion == '2':
-            print("Ejecutando script para OpenStack...")
-            os.system("python3 Crear_Slices_OP.py")
+            print("ESjecutando script para OpenStack...")
+            import Crear_Slices_OP
+            Crear_Slices_OP.run(token)
         elif opcion.lower() == 'q':
             print("Saliendo del programa. ¡Hasta luego!")
             break
         else:
             print("Opción no válida. Por favor, intente de nuevo.")
-
-if __name__ == "__main__":
-    run()
