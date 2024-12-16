@@ -87,6 +87,20 @@ def delete_entire_project(project_id):
         print(f"Error deleting project: {e}")
         return False
 
+def delete_slice_request(id_proyecto):
+    try:
+        import requests
+        url = f"http://10.20.12.187:5810/topology/borrar/{id_proyecto}"
+        response = requests.delete(url)
+        if response.status_code == 200:
+            return {"status": "success"}
+        elif response.status_code == 404:
+            return {"status": "error", "detail": response.json().get("detail")}
+        else:
+            return {"status": "error", "detail": "Unknown error"}
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}    
+
 def main():
     # Get admin token
     admin_token = get_admin_token()
@@ -117,31 +131,25 @@ def main():
     # Prompt for project selection
     while True:
         try:
-            selection = input("\nEnter the number of the project you want to delete (or 'q' to quit): ")
-            
-            if selection.lower() == 'q':
+            id_proyecto = input("\nEnter the ID of the project you want to delete (or 'q' to quit): ")
+
+            if id_proyecto.lower() == 'q':
                 print("Operation cancelled.")
                 return
-            
-            selection = int(selection)
-            
-            if 1 <= selection <= len(projects):
-                selected_project = projects[selection - 1]
-                print(f"\nSelected Project: {selected_project['name']} (ID: {selected_project['id']})")
-                
-                # Confirm deletion
-                confirm = input("Are you sure you want to delete this project? (yes/no): ").lower()
-                if confirm == 'yes':
-                    if delete_entire_project(selected_project['id']):
-                        print("Project deletion completed successfully.")
-                    else:
-                        print("Project deletion failed.")
+
+            # Confirm deletion
+            confirm = input(f"Are you sure you want to delete the project with ID {id_proyecto}? (yes/no): ").lower()
+            if confirm == 'yes':
+                response = delete_slice_request(id_proyecto)
+                if response.get("status") == "success":
+                    print("Project deletion completed successfully.")
                 else:
-                    print("Project deletion cancelled.")
-                
-                return
+                    print(f"Project deletion failed: {response.get('detail')}")
             else:
-                print("Invalid selection. Please enter a valid number.")
+                print("Project deletion cancelled.")
+
+        except ValueError:
+            print("Please enter a valid project ID or 'q' to quit.")
         
         except ValueError:
             print("Please enter a valid number or 'q' to quit.")

@@ -5,9 +5,17 @@ import os
 from dotenv import load_dotenv
 import jwt
 from datetime import datetime, timedelta
+import mysql.connector
 
 # Cargar las variables de entorno
 load_dotenv()
+
+DB_CONFIG = {
+    'host': 'localhost',
+    'user': 'root',
+    'password': 'root',
+    'database': 'proyectoCloud'
+}
 
 # Crear el router
 router = APIRouter()
@@ -16,6 +24,30 @@ router = APIRouter()
 JWT_SECRET = os.getenv('JWT_SECRET', 'secret_key')  # Reemplaza 'secret_key' con una clave fuerte
 JWT_ALGORITHM = 'HS256'
 JWT_EXPIRATION_MINUTES = 30
+
+def save_log_to_db(action, project_id=None, user=None, details=None):
+    """
+    Guarda un registro de log en la base de datos.
+    """
+    try:
+        connection = mysql.connector.connect(**DB_CONFIG)
+        cursor = connection.cursor()
+        
+        # Insertar el log en la tabla "logs"
+        query = """
+            INSERT INTO logs (action, project_id, user, details) 
+            VALUES (%s, %s, %s, %s)
+        """
+        cursor.execute(query, (action, project_id, user, details))
+        connection.commit()
+        print(f"Log registrado: Acción '{action}', Proyecto '{project_id}', Usuario '{user}'")
+    
+    except mysql.connector.Error as e:
+        print(f"Error al guardar el log en la base de datos: {e}")
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
 
 # Definir la conexión a la base de datos MySQL
 def get_db_connection():
@@ -64,6 +96,12 @@ def login(data: LoginData):
     user = check_credentials(username, password)
     if user:
         _, user_name, user_role = user  # Extraer el nombre y rol del usuario
+        save_log_to_db(
+            accion="Crear Slice",
+            rol=user_role,
+            usuario=user_name,
+            detalles="Se agregó un nuevo slice a la tabla slices"
+        )
         token = create_jwt_token(user_name, user_role)  # Crear el token con el nombre
         return {
             "status": "success",

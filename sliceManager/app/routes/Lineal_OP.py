@@ -24,6 +24,30 @@ DB_CONFIG = {
 DEFAULT_IMAGE_ID = '4f0d4d09-d6bc-4a65-8ce2-1a181fa3e458'
 DEFAULT_FLAVOR_ID = 'cdd2dc7f-b00b-483d-a104-4cea575c9b1b'
 
+def save_log_to_db(action, project_id=None, user=None, details=None):
+    """
+    Guarda un registro de log en la base de datos.
+    """
+    try:
+        connection = mysql.connector.connect(**DB_CONFIG)
+        cursor = connection.cursor()
+        
+        # Insertar el log en la tabla "logs"
+        query = """
+            INSERT INTO logs (action, project_id, user, details) 
+            VALUES (%s, %s, %s, %s)
+        """
+        cursor.execute(query, (action, project_id, user, details))
+        connection.commit()
+        print(f"Log registrado: Acción '{action}', Proyecto '{project_id}', Usuario '{user}'")
+    
+    except mysql.connector.Error as e:
+        print(f"Error al guardar el log en la base de datos: {e}")
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
 def save_project_to_db(project_id, topology_name, selected_user):
     """
     Guarda el ID del proyecto creado y el usuario seleccionado en la base de datos.
@@ -40,9 +64,22 @@ def save_project_to_db(project_id, topology_name, selected_user):
         cursor.execute(query, (project_id, selected_user))
         connection.commit()
         print(f"Project ID {project_id} guardado en la base de datos con el usuario {selected_user}")
+
+        save_log_to_db(
+            accion="Crear Slice",
+            project_id=project_id,
+            usuario=selected_user,
+            detalles="Se agregó un nuevo slice a la tabla slices"
+        )
     
     except mysql.connector.Error as e:
         print(f"Error al guardar en la base de datos: {e}")
+        save_log_to_db(
+            accion="Error",
+            project_id=project_id,
+            usuario=selected_user,
+            detalles="Error al agregar slice"
+        )
     finally:
         if connection.is_connected():
             cursor.close()

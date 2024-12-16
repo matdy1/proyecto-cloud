@@ -1,4 +1,5 @@
 import sys
+import mysql.connector
 from openstack_sf import (
     get_admin_token, 
     get_token_for_project, 
@@ -11,11 +12,80 @@ from openstack_sf import (
 )
 from json import dumps as jdumps
 
+# Configuración de la base de datos
+DB_CONFIG = {
+    'host': 'localhost',
+    'user': 'root',
+    'password': 'root',
+    'database': 'proyectoCloud'
+}
+
 # Default Image and Flavor IDs
 DEFAULT_IMAGE_ID = '4f0d4d09-d6bc-4a65-8ce2-1a181fa3e458'
 DEFAULT_FLAVOR_ID = 'cdd2dc7f-b00b-483d-a104-4cea575c9b1b'
 
-def create_ring_topology(topology_name, num_nodes, image_id=DEFAULT_IMAGE_ID, flavor_id=DEFAULT_FLAVOR_ID):
+def save_log_to_db(action, project_id=None, user=None, details=None):
+    """
+    Guarda un registro de log en la base de datos.
+    """
+    try:
+        connection = mysql.connector.connect(**DB_CONFIG)
+        cursor = connection.cursor()
+        
+        # Insertar el log en la tabla "logs"
+        query = """
+            INSERT INTO logs (action, project_id, user, details) 
+            VALUES (%s, %s, %s, %s)
+        """
+        cursor.execute(query, (action, project_id, user, details))
+        connection.commit()
+        print(f"Log registrado: Acción '{action}', Proyecto '{project_id}', Usuario '{user}'")
+    
+    except mysql.connector.Error as e:
+        print(f"Error al guardar el log en la base de datos: {e}")
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+def save_project_to_db(project_id, topology_name, selected_user):
+    """
+    Guarda el ID del proyecto creado y el usuario seleccionado en la base de datos.
+    """
+    try:
+        connection = mysql.connector.connect(**DB_CONFIG)
+        cursor = connection.cursor()
+        
+        # Insertar en la tabla "topologias"
+        query = """
+            INSERT INTO slices (idProyecto, usuario) 
+            VALUES (%s, %s)
+        """
+        cursor.execute(query, (project_id, selected_user))
+        connection.commit()
+        print(f"Project ID {project_id} guardado en la base de datos con el usuario {selected_user}")
+
+        save_log_to_db(
+            action="ADD_SLICE",
+            project_id=project_id,
+            user=selected_user,
+            details="Se agregó un nuevo slice a la tabla slices"
+        )
+    
+    except mysql.connector.Error as e:
+        print(f"Error al guardar en la base de datos: {e}")
+        save_log_to_db(
+            accion="Error",
+            project_id=project_id,
+            usuario=selected_user,
+            detalles="Error al agregar slice"
+        )
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+def create_ring_topology(topology_name, num_nodes, selected_user, image_id=DEFAULT_IMAGE_ID, flavor_id=DEFAULT_FLAVOR_ID):
     """
     Create an OpenStack ring topology with the specified number of nodes.
 
@@ -48,6 +118,9 @@ def create_ring_topology(topology_name, num_nodes, image_id=DEFAULT_IMAGE_ID, fl
         # Step 2: Assign admin role to the project
         assign_admin_role_over_os_project(admin_project_token, project_id)
         print("Admin role assigned successfully")
+
+        # Guardar el proyecto en la base de datos
+        save_project_to_db(project_id, topology_name, selected_user)
 
         # Step 3: Get project token
         project_token = get_token_for_project(project_id, admin_project_token)
@@ -131,8 +204,13 @@ def main():
 
     image_id = sys.argv[3] if len(sys.argv) > 3 else DEFAULT_IMAGE_ID
     flavor_id = sys.argv[4] if len(sys.argv) > 4 else DEFAULT_FLAVOR_ID
+    selected_user = sys.argv[5] if len(sys.argv) > 5 else None
 
-    result = create_ring_topology(topology_name, num_nodes, image_id, flavor_id)
+    if not selected_user:
+        print("Error: Debes proporcionar un usuario seleccionado como quinto argumento.")
+        sys.exit(1)
+
+    result = create_ring_topology(topology_name, num_nodes, image_id, flavor_id,selected_user)
 
     if result:
         print("\nTopology Creation Summary:")
