@@ -97,7 +97,7 @@ def login(data: LoginData):
     if user:
         _, user_name, user_role = user  # Extraer el nombre y rol del usuario
         save_log_to_db(
-            action="Crear Slice",
+            action="Login",
             rol=user_role,
             user=user_name,
             details="Se agregó un nuevo slice a la tabla slices"

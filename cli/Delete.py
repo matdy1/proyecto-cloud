@@ -1,3 +1,4 @@
+import requests
 from openstack_sf import get_admin_token, get_token_for_project
 from openstack_sdk import (
     list_servers,

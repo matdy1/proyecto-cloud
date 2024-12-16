@@ -1,4 +1,5 @@
 from tabulate import tabulate
+import requests
 def mostrar_menu():
     print("""
     
@@ -16,8 +17,8 @@ def mostrar_menu():
     print("3. Editar Slices")
     print("4. Borrar Slices")
     print("5. Ver recursos")
-    print("5. Ver logs")
-    print("6. Salir")
+    print("6. Ver logs")
+    print("7. Salir")
 
 # Función para listar slices
 import subprocess
@@ -123,9 +124,9 @@ def run(token):
             borrar_slices()
         elif opcion == "5":
             monitoreo()
-        elif opcion == "5":
-            logs()       
         elif opcion == "6":
+            logs()       
+        elif opcion == "7":
             print("Gracias por usar el programa. ¡Hasta luego!")
             break
         else:
