@@ -140,7 +140,32 @@ async def create_topology(request: TopologyRequest):
                 cursor.close()
                 connection.close()
 
-# Endpoint para borrar un registro de la tabla slices por idProyecto
+def send_project_to_delete_script(id_proyecto: str) -> bool:
+    try:
+        # Ruta al script externo
+        script_path = os.path.join(BASE_SCRIPT_PATH, "delete_openstack_project.py")
+
+        # Ejecutar el script con subprocess
+        result = subprocess.run(
+            ["python3", script_path, id_proyecto],  # Pasa el ID del proyecto como argumento
+            text=True,
+            capture_output=True,
+            check=True
+        )
+
+        # Procesar la salida del script
+        output = result.stdout.strip()
+        return {"status": "success", "output": output}
+
+    except subprocess.CalledProcessError as e:
+        print(f"Error ejecutando el script: {e.stderr}")
+        return {"status": "error", "detail": e.stderr}
+
+    except Exception as e:
+        print(f"Error inesperado: {e}")
+        return {"status": "error", "detail": str(e)}
+
+
 @router.delete("/borrar/{id_proyecto}")
 async def delete_slice(id_proyecto: str):
     try:
@@ -156,10 +181,17 @@ async def delete_slice(id_proyecto: str):
 
                 # Verificar si se borró alguna fila
                 if cursor.rowcount == 0:
-                    raise HTTPException(status_code=404, detail="No se encontró el proyecto con el id proporcionado.")
+                    raise HTTPException(
+                        status_code=404, detail="No se encontró el proyecto con el id proporcionado."
+                    )
+        
+        # Enviar el ID del proyecto al script encargado del borrado en OpenStack
+        success = send_project_to_delete_script(id_proyecto)
+        if not success:
+            raise HTTPException(status_code=500, detail="El proyecto fue eliminado de la base de datos, pero no se pudo eliminar de OpenStack.")
 
-                return {"message": "Registro eliminado correctamente."}
+        return {"message": "Registro eliminado correctamente, incluido el proyecto en OpenStack."}
 
-    except Error as db_error:
-        print(f"Error: {db_error}")
+    except Exception as e:
+        print(f"Error general: {e}")
         raise HTTPException(status_code=500, detail="Error interno del servidor.")
