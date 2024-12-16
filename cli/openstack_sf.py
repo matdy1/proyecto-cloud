@@ -53,25 +53,14 @@ def get_token_for_project(project_id, admin_project_token):
     return token_for_project
 
 def create_os_instance(image_id, flavor_id, name, port_list, token_for_project):
-    """
-
-    INPUT:
-        image_id = (string) identifier of image that instance will use
-        flavor_id = (string) identifier of flavor that instance will use
-        name = (string) name of the instance you will create
-        port_list = (string list) list of port id that will be attached to instance
-        token_for_project = token with scope authorization over the project identified by project_id
-    
-    OUTPUT:
-        instance_info = dictionary with information about vm just created | {} if something wrong
-    
-    """
     ports = [ { "port" : port } for port in port_list ]
     
     r = create_server(NOVA_ENDPOINT, token_for_project, name, flavor_id, image_id, ports)
     instance_info = {}
     if r.status_code == 202:
         instance_info = r.json()
+        # Añade el nombre explícitamente para facilitar el acceso
+        instance_info['instance_name'] = name
     
     return instance_info
 

@@ -24,10 +24,10 @@ def listar_slices():
     subprocess.run(["python", "Listar_Slices.py"])
 
 # Función para crear slices
-def crear_slices():
+def crear_slices(token):
     print("Has seleccionado: Crear Slices")
     import Driver
-    Driver.run()
+    Driver.run(token)
     # Si prefieres usar subprocess:
     # subprocess.run(["python", "Crear_Slices.py"])
     
@@ -55,7 +55,7 @@ def run(token):
         if opcion == "1":
             listar_slices()
         elif opcion == "2":
-            crear_slices()
+            crear_slices(token)
         elif opcion == "3":
             editar_slices()
         elif opcion == "4":
