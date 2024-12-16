@@ -66,19 +66,19 @@ def save_project_to_db(project_id, topology_name, selected_user):
         print(f"Project ID {project_id} guardado en la base de datos con el usuario {selected_user}")
 
         save_log_to_db(
-            accion="Crear Slice",
+            action="ADD_SLICE",
             project_id=project_id,
-            usuario=selected_user,
-            detalles="Se agregó un nuevo slice a la tabla slices"
+            user=selected_user,
+            details="Se agregó un nuevo slice a la tabla slices"
         )
     
     except mysql.connector.Error as e:
         print(f"Error al guardar en la base de datos: {e}")
         save_log_to_db(
-            accion="Error",
+            action="Error",
             project_id=project_id,
-            usuario=selected_user,
-            detalles="Error al agregar slice"
+            user=selected_user,
+            details="No se logro crear el slice"
         )
     finally:
         if connection.is_connected():

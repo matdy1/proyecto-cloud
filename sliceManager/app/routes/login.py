@@ -25,7 +25,7 @@ JWT_SECRET = os.getenv('JWT_SECRET', 'secret_key')  # Reemplaza 'secret_key' con
 JWT_ALGORITHM = 'HS256'
 JWT_EXPIRATION_MINUTES = 30
 
-def save_log_to_db(action, project_id=None, user=None, details=None):
+def save_log_to_db(action, rol=None, user=None, details=None):
     """
     Guarda un registro de log en la base de datos.
     """
@@ -38,9 +38,9 @@ def save_log_to_db(action, project_id=None, user=None, details=None):
             INSERT INTO logs (action, project_id, user, details) 
             VALUES (%s, %s, %s, %s)
         """
-        cursor.execute(query, (action, project_id, user, details))
+        cursor.execute(query, (action, rol, user, details))
         connection.commit()
-        print(f"Log registrado: Acción '{action}', Proyecto '{project_id}', Usuario '{user}'")
+        print(f"Log registrado: Acción '{action}', Proyecto '{rol}', Usuario '{user}'")
     
     except mysql.connector.Error as e:
         print(f"Error al guardar el log en la base de datos: {e}")
@@ -97,10 +97,10 @@ def login(data: LoginData):
     if user:
         _, user_name, user_role = user  # Extraer el nombre y rol del usuario
         save_log_to_db(
-            accion="Crear Slice",
+            action="Crear Slice",
             rol=user_role,
-            usuario=user_name,
-            detalles="Se agregó un nuevo slice a la tabla slices"
+            user=user_name,
+            details="Se agregó un nuevo slice a la tabla slices"
         )
         token = create_jwt_token(user_name, user_role)  # Crear el token con el nombre
         return {
